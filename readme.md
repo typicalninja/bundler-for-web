@@ -18,8 +18,10 @@
 
 > How we Normalize:
 
-is-number -> isNumber ("-" removed and 1st letter of the word after is capitalized)
-lodash -> lodash (no change)
+* `is-number` -> `isNumber` ("-" removed and 1st letter of the word after is capitalized)
+
+
+* `lodash` -> `lodash` (no change)
 
 * so after requiring it, use the packageName to access it
 
