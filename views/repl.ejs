@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>View Cached</title>
+		<!-- Powered By Tailwind css -->
+		<script src="https://cdn.tailwindcss.com/3.1.8?plugins=forms@0.5.2"></script>
+		<!-- we use codemirror v5 -->
+		<script src="https://codemirror.net/5/lib/codemirror.js"></script>
+		<link rel="stylesheet" href="https://codemirror.net/5/lib/codemirror.css">
+		<script src="https://codemirror.net/5/mode/javascript/javascript.js"></script>
+		<link rel="stylesheet" href="https://codemirror.net/5/theme/dracula.css">
+	</head>
+	<body class="h-screen bg-gradient-to-r from-cyan-500 to-blue-500">
+		<h1 class="font-mono text-2xl">Repl</h1>
+		<h4>Feel Free to use Any npm package (Some npm packages will not work)</h4>
+		<button onclick="runScript()" class="bg-lime-300 hover:bg-lime-500 rounded-md">Run Module</button>
+		<button onclick="clearConsole()" class="bg-red-300 hover:bg-red-500 rounded-md">Clear Console</button>
+		<button onclick="installPackages()" class="bg-orange-300 hover:bg-orange-500 rounded-md">Install Packages</button>
+		<button onclick="saveItems()" class="bg-purple-300 hover:bg-purple-500 rounded-md">Save To localStorage</button>
+		<div class="grid grid-cols-3 gap-4">
+			<textarea id="editor"></textarea>
+			<textarea id="console" class="h-96 resize-none" readonly></textarea>
+			<textarea id="packages" placeholder="package,package2"></textarea>
+		</div>
+		<script>
+			// code mirror for the editor
+			const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+				lineNumbers: true,
+				mode: "javascript",
+				theme: 'dracula',
+				lineWrapping: true,
+			});
+
+			// code mirror for the console
+			const consoleArea = CodeMirror.fromTextArea(document.getElementById('console'), {
+				lineNumbers: false,
+				mode: null,
+				theme: 'dracula',
+				readOnly: 'nocursor',
+				value: '...Buffer Empty',
+				lineWrapping: true,
+			});
+
+			// console wrappers
+			var _l = console
+			var console = {
+				..._l,
+				buffer: [],
+				log: (...msg) => {
+					_l.log(...msg)
+					if(console.buffer.length >= 10) console.buffer.shift()
+					console.buffer.push(`------------------\n[${new Date().toTimeString()}] :: ${msg.join(' ')}`);
+					consoleArea.setValue(console.buffer.join('\n'))
+					return null;
+				},
+			}
+
+			function clearConsole() {
+				console.buffer = [];
+				consoleArea.setValue('')
+			}
+
+			const reservedWords = 'break case class catch const continue debugger default delete do else export extends finally for function if import in instanceof let new return super switch this throw try typeof var void while with yield enum await implements package protected static interface private public'.split(
+				' '
+			);
+			const builtins = 'Infinity NaN undefined null true false eval uneval isFinite isNaN parseFloat parseInt decodeURI decodeURIComponent encodeURI encodeURIComponent escape unescape Object Function Boolean Symbol Error EvalError InternalError RangeError ReferenceError SyntaxError TypeError URIError Number Math Date String RegExp Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array Map Set WeakMap WeakSet SIMD ArrayBuffer DataView JSON Promise Generator GeneratorFunction Reflect Proxy Intl'.split(
+				' '
+			);
+
+			const blacklisted = Object.create(null);
+			reservedWords.concat(builtins).forEach(word => (blacklisted[word] = true));
+
+			const normalizePackageName = (str) => {
+				str = str
+				.replace(/-(\w)/g, (_, letter) => letter.toUpperCase())
+				.replace(/[^$_a-zA-Z0-9]/g, '_');
+
+				if (/\d/.test(str[0]) || blacklisted[str]) str = `_${str}`;
+
+				return str;
+			}
+		</script>
+		<script>
+			const head = document.getElementsByTagName("head")[0];
+			const packages = document.getElementById('packages');
+			const scripts = []
+			const scriptUrlBase = '/npm/';
+
+			function require(pkgName) {
+				pkgName = normalizePackageName(pkgName)
+				if(!scripts.includes(pkgName) && !window[pkgName]) throw new Error(`Module Not Found: ${pkgName}`)
+				else return window[pkgName]
+			}
+
+			function runScript() {
+				const code = editor.getValue();
+				if(code == '') return console.log("Please Write Something to Execute");
+				console.log(`Running current Script...`)
+				try {
+					let result = eval(code)
+					if(result) {
+						if(typeof result !== 'string') {
+							result = JSON.stringify(result)
+						}
+						console.log(result)
+					}
+				}
+				catch(err) {
+					console.log(err)
+				}
+			}
+
+			function installPackages() {
+				const packagesDetected = packages.value.split((/,/)).filter(v => v).map(v => v.trim());
+				for(const pkg of packagesDetected) {
+					if(scripts.includes(pkg)) continue;
+					else addScript(pkg)
+				}
+
+				for(const oldPkg of scripts) {
+					if(!packagesDetected.includes(oldPkg)) {
+						console.log(`Uninstalling ${oldPkg}`)
+						scripts.splice(scripts.indexOf(oldPkg), 1)
+					}
+				}
+			}
+
+			function loadSave() {
+				const scripts = JSON.parse(localStorage.getItem('scripts'));
+				if(scripts.length < 0) return false;
+				console.log(`Loading Save`)
+				for(const pkg of scripts) {
+					packages.textContent = pkg
+					if(scripts.includes(pkg)) continue;
+					else addScript(pkg)
+				}
+			}
+
+			function saveItems() {
+				console.log(`Saving Data...`)
+				localStorage.setItem('scripts', JSON.stringify(scripts));
+				const code = editor.getValue()
+				if(code !== '') localStorage.setItem('code', code)
+			}
+
+			function addScript(pkgName) {
+				if(scripts.includes(pkgName)) throw new Error(`Failed to Install ${pkgName} [Already Installed]`);
+				console.log(`Installing Package ${pkgName}`)
+				const Script = document.createElement("script");
+				Script.src = `${scriptUrlBase}${pkgName}?substituteScriptOnFail=false`;
+				Script.addEventListener('load', () => {
+					scripts.push(pkgName);
+					console.log(`Successfully Installed ${pkgName}`)
+				});
+    			Script.addEventListener('error', () => {
+					console.log(`Failed To Install Package ${pkgName}`);
+					(head || document.body).removeChild(Script)
+				});
+				(head || document.body).appendChild(Script);
+			}
+
+			loadSave()
+		</script>
+	</body>
+</html>

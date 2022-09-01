@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title><%= name %> - v<%= version %></title>
+		<!-- Powered By Tailwind css -->
+		<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+	</head>
+	<body class="h-screen bg-gradient-to-r from-cyan-500 to-blue-500">
+		<div class="grid grid-cols- gap-4">
+			<h1 class="font-mono text-2xl decoration-orange-500 decoration-double underline decoration-2">Running <%= name %>-v<%= version %></h1>
+			<h2 class="font-mono text-lg">Currently <a class="decoration-orange-500 decoration-double underline decoration-2"><%= cacheSize %></a> <%= cacheSize > 1 ? 'Packages are' : 'Package is' %> Cached</h2>
+			<h1>Input A Package To view</h1>
+			<input onchange="onChange()" onkeyup="onChange()" type="text" name="pkg_input" id="pkg_input" class="rounded text-pink-500" placeholder="lodash" />
+			<p id="result"></p>
+			<button onclick="onClick()" class="rounded-sm bg-orange-300 hover:bg-orange-800 w-20">Get Package</button>
+			<a class="font-bold underline text-md" href="/repl">Try Running code</a>
+			<a class="font-bold underline text-xs" href="https://webpack.js.org/">webpack as a service</a>
+		</div>	
+		<script>
+			const input = document.getElementById('pkg_input');
+			const resultEl = document.getElementById('result');
+
+			const base = '/npm/'
+			function onChange() {
+				if(input.value !== '') {
+					resultEl.textContent = base + input.value
+				}
+				else {
+					resultEl.textContent = ''
+				}
+			}
+
+			function onClick() {
+				window.open(base + input.value, '_blank')
+			}
+		</script>
+	</body>
+</html>

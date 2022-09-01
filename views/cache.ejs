@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>View Cached</title>
+		<!-- Powered By Tailwind css -->
+		<script src="https://cdn.tailwindcss.com/3.1.8?plugins=forms@0.5.2"></script>
+		<script src="/npm/sha1?hash=31081099be5ad5ff7ae18fe510c38e25ab0175c"></script>
+	</head>
+	<body class="h-screen bg-gradient-to-r from-cyan-500 to-blue-500">
+		<div class="grid grid-cols- gap-4">
+			<h1 class="font-mono text-2xl">Current Cached Keys</h1>
+			<h1>Input A Package in format packageName@version to get its hash (Click filter to filter it from the list)</h1>
+			<input onchange="onChange()" onkeyup="onChange()" type="text" name="input" id="input" class="rounded text-black font-bold" placeholder="lodash@1.0.0" />
+			<button onclick="onClick()" class="rounded-sm bg-orange-300 hover:bg-orange-800 w-20">Filter</button>
+			<a id="hash_a"></a>
+			<% for(const v of cache.keys()) { %>
+				<% if(query.filter && v == query.filter) {  %>
+					<div class="bg-red-500">
+						Found - Hash: <%= v %>
+					</div>
+				<% } else if(!query.filter) { %>
+					<div>
+						Hash: <%= v %>
+					</div>
+				<% } %>
+			<% } %>
+		</div>	
+		<script>
+			const hash_a = document.getElementById('hash_a');
+			const input = document.getElementById('input');
+			const base = 'Current:'
+			// init
+			hash_a.textContent = base + (typeof sha1 !== 'undefined' && '<Please Enter a Package>' || 'Sha1 library install Failed Via Api')
+			function onChange() {
+				if(input.value !== '') {
+					hash_a.textContent = base + (typeof sha1 !== 'undefined' && sha1(input.value) || 'Sha1 library install Failed Via Api')
+				}
+				else {
+					hash_a.textContent = base + '<Please Enter a Package>'
+				}
+			}
+
+			function onClick() {
+				window.location = '/cache?filter=' + sha1(input.value)
+			}
+		</script>
+	</body>
+</html>
