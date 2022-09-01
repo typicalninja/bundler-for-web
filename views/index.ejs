@@ -10,7 +10,9 @@
 	<body class="h-screen bg-gradient-to-r from-cyan-500 to-blue-500">
 		<div class="grid grid-cols- gap-4">
 			<h1 class="font-mono text-2xl decoration-orange-500 decoration-double underline decoration-2">Running <%= name %>-v<%= version %></h1>
+			<h1 class="text-lg font-mono">Bundle Npm packages that do not provide web packages instantly on web</h1>
 			<h2 class="font-mono text-lg">Currently <a class="decoration-orange-500 decoration-double underline decoration-2"><%= cacheSize %></a> <%= cacheSize > 1 ? 'Packages are' : 'Package is' %> Cached</h2>
+			<h1>Check The ReadMe of the github repo for more info</h1>
 			<h1>Input A Package To view</h1>
 			<input onchange="onChange()" onkeyup="onChange()" type="text" name="pkg_input" id="pkg_input" class="rounded text-pink-500" placeholder="lodash" />
 			<p id="result"></p>
