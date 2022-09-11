@@ -1,4 +1,5 @@
 import { version as webPackVersion } from 'webpack'
+import { normalizePackageName } from './normalize';
 
 
 export const PROCESS_EVENTS = {
@@ -25,7 +26,16 @@ export type httpResponse = {
 	headers?: {  }
 }
 
+// construct a fail script as a global function that will call itself or a function in the variable of the pkgName to error
 export const Insert_SubStituteFailScript = ({ reason = 'Unknown', pkg = '<Not Found>' } = {}) => {
+
+const mainScript = `(() => {
+		// throw our error
+		console.error('[${name}] Running Server Version: ${version}')
+		console.error('[${name}] A Error Occurred While Requiring/Bundling ${pkg.replace('\'', '"')}')
+		throw new Error('[${name}]: ${reason.replace('\'', '"')}')
+})`
+
 return `
 /**
 	* Script Loading Failed:
@@ -35,12 +45,7 @@ return `
 	* This Script Was Generated Automatically on ${new Date().toDateString()}, after bundling encountered a Error
 */
 
-	(() => {
-		// throw our error
-		console.error('[${name}] Running Server Version: ${version}')
-		console.error('[${name}] A Error Occurred While Requiring/Bundling ${pkg.replace('\'', '"')}')
-		throw new Error('[${name}]: ${reason.replace('\'', '"')}')
-	})()
+	${pkg == '<Not Found>' ? mainScript + '()' : `${normalizePackageName(pkg.split('@')[0])}=${mainScript}`}
 `
 }
 

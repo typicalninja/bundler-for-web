@@ -128,14 +128,26 @@
 			}
 
 			function loadSave() {
-				const scripts = JSON.parse(localStorage.getItem('scripts'));
-				if(scripts.length < 0) return false;
+				const oldScripts = JSON.parse(localStorage.getItem('scripts'));
+				if(!oldScripts || oldScripts?.length < 0) return false;
 				console.log(`Loading Save`)
-				for(const pkg of scripts) {
-					packages.textContent = pkg
+				for(const pkg of oldScripts) {
 					if(scripts.includes(pkg)) continue;
 					else addScript(pkg)
 				}
+				packages.textContent = oldScripts.join(",")
+			}
+
+			function addFromQuery() {
+				const query = JSON.parse('<%- JSON.stringify(query) %>')
+				const queryScripts = query?.install || query?.i || query?.packages;
+				if(!queryScripts) return false;
+				const scr = queryScripts.split(',');
+				for(const pkg of scr) {
+					if(scripts.includes(pkg)) continue;
+					else addScript(pkg)
+				}
+				packages.textContent = scr.join(",")
 			}
 
 			function saveItems() {
@@ -161,7 +173,8 @@
 				(head || document.body).appendChild(Script);
 			}
 
-			loadSave()
+			loadSave();
+			addFromQuery()
 		</script>
 	</body>
 </html>

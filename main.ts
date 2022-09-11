@@ -1,10 +1,10 @@
 import Fastify from 'fastify';
-import cache from './cache';
+import cache, { prepareCaches } from './cache';
 import config from './config';
 import { Options, parseOptions } from './utils/parseOptions';
 import fastifyView from '@fastify/view'
 import path from 'path';
-import { Insert_ScriptServerComments, name, version } from './utils/constants';
+import { httpResponse, Insert_ScriptServerComments, name, version } from './utils/constants';
 import { clearTmp } from './utils/fileSys';
 import logger from './utils/logger';
 
@@ -14,9 +14,20 @@ import { parsePackageUrl } from './npm_bundler/packageData';
 import { getScriptHeaders } from './utils/script';
 import { ValidationError } from 'joi';
 
+// fastify middlewares
+import rateLimit from '@fastify/rate-limit'
+
+
 const fastify = Fastify({
 	logger: config.loggerHttp
-})
+});
+
+
+fastify.register(import('@fastify/etag'));
+fastify.register(import('@fastify/cors'), {
+	origin: '*'
+});
+fastify.register(rateLimit, { global: true, max: 2, timeWindow: 1000 })
 
 // to support ejs
 fastify.register(fastifyView, {
@@ -25,16 +36,19 @@ fastify.register(fastifyView, {
 	},
 });
 
-fastify.get('/', (request, reply) => {
-	reply.view('./views/index.ejs', { name: name, version, cacheSize: cache.size });
+fastify.get('/', (_, reply) => {
+	cache.getDatabaseSize().then((databaseSize) => {
+		reply.view('./views/index.ejs', { name: name, version, cacheSize: cache.caches.memory?.size || 0, databaseSize });
+	});
 });
 
-fastify.get('/repl', (request, reply) => {
-	reply.view('./views/repl.ejs');
+
+fastify.get('/repl', (_, reply) => {
+	reply.view('./views/repl.ejs', { query: _.query || {} });
 });
 
 fastify.get('/cache', (request, reply) => {
-	reply.view('./views/cache.ejs', { cache: cache, query: request.query });
+	
 });
 
 /**
@@ -62,9 +76,9 @@ fastify.get(`${config.baseNpmBundleUrl}/*`, async (request, reply) => {
 		}
 	}
 	let bundle;
-	if(opt.hash && cache.has(opt.hash)) {
+	if(opt.hash && await cache.has(opt.hash)) {
 		bundle = {
-			result: Insert_ScriptServerComments(cache.get(opt.hash) as string, true, opt.minify)
+			result: Insert_ScriptServerComments(await cache.get(opt.hash) as string, true, opt.minify)
 		}
 	}
 	else {
@@ -83,7 +97,7 @@ fastify.get(`${config.baseNpmBundleUrl}/*`, async (request, reply) => {
 			reply.code(500)
 		}
 		else {
-			reply.header('cache-control', 'public, max-age=31536000, s-maxage=31536000, immutable')
+		//	reply.header('cache-control', 'public, max-age=31536000, s-maxage=31536000, immutable')
 		}
 		return bundle.result;
 	}
@@ -96,10 +110,25 @@ fastify.get(`${config.baseNpmBundleUrl}/*`, async (request, reply) => {
 	}
 });
 
+// 404 handler returns responses in our format instead of fastify format
+fastify.setNotFoundHandler({
+},async function (request, reply): Promise<httpResponse> {
+	reply.code(404);
+	return {
+		error: {
+			message: `The Url You requested Could not be found`,
+			data: [request.url],
+			error: true
+		},
+		result: null,
+	}
+});
+
 
 fastify.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
 	if (err) throw err
 	// clear the tmp folder
 	clearTmp().then(() => logger.debug(`Cleared The Tmp Folder At ${config.tmpDir}`)).catch(() => logger.debug(`Failed To clear Tmp folder at ${config.tmpDir}`))
+	prepareCaches().then(() => logger.debug(`Caches Prepared and is ready`)).catch((e) => logger.debug(`Error occurred with preparing caches: ${e}`))
 	logger.info(`Server is Now Running on ${address}`)
 })
