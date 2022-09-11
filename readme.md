@@ -14,17 +14,17 @@
 
 # Using a required Script
 
-* we provide the [webpack.output.library](https://webpack.js.org/configuration/output/#outputlibrary) as a normalized packageName you required
+* we provide the [webpack.output.library](https://webpack.js.org/configuration/output/#outputlibrary) as a normalized packageName of the package you required
 
-> How we Normalize:
+> How we Normalize Package Names:
 
 * `is-number` -> `isNumber` ("-" removed and 1st letter of the word after is capitalized)
 
 
 * `lodash` -> `lodash` (no change)
 
-* so after requiring it, use the packageName to access it
+* after requiring it, use the packageName to access it
 
 # Try 
 
-* You can Experiment with it [here](https://bundler-for-web.typicalninja.repl.co/repl)
+* You can Experiment with it [here](https://bundlerforweb.ga/repl)
